@@ -1,43 +1,38 @@
-name: build‑deploy
+name: build-deploy
 
 on:
   push:
-    branches: [ "main" ]   # main ブランチに push したら実行
-  workflow_dispatch:       # 手動実行も可
+    branches: [ "main" ]
 
 env:
-  PROJECT_ID:  ${{ secrets.GCP_PROJECT_ID }}
-  SERVICE_NAME: reel-auto
-  REGION: asia-northeast1         # 東京
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: reel-auto          # Cloud Run サービス名
+  REGION: asia-northeast1          # リージョン
 
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-
     steps:
-    # ①  ソースをチェックアウト
-    - uses: actions/checkout@v4
+      # ① リポジトリをチェックアウト
+      - uses: actions/checkout@v4
 
-    # ②  認証 ‥‥★これが抜けていた★
-    - id: auth
-      uses: google-github-actions/auth@v2
-      with:
-        credentials_json: ${{ secrets.GCP_SA_KEY }}
+      # ② GCP に認証（★必須）
+      - name: Auth to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-    # ③  gcloud セットアップ
-    - uses: google-github-actions/setup-gcloud@v2
-      with:
-        project_id:  ${{ env.PROJECT_ID }}
+      # ③ gcloud CLI セットアップ
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
 
-    # ④  ビルド & Cloud Run へデプロイ
-    - id: deploy
-      uses: google-github-actions/deploy-cloudrun@v2
-      with:
-        service:  ${{ env.SERVICE_NAME }}
-        region:   ${{ env.REGION }}
-        timeout:  "900s"                  # 15 分
-        source:   .
-
-    # ⑤  デプロイ URL をログに出力
-    - name: Show URL
-      run: echo "URL 👉  ${{ steps.deploy.outputs.url }}"
+      # ④ Cloud Run へデプロイ
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service:  ${{ env.SERVICE_NAME }}
+          region:   ${{ env.REGION }}
+          source:   .
+          timeout:  900s     # 15分
