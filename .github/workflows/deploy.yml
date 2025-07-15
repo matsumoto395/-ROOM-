@@ -1,45 +1,43 @@
-name: build-deploy
+name: build‑deploy
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:          # 手動実行も可
+    branches: [ "main" ]   # main ブランチに push したら実行
+  workflow_dispatch:       # 手動実行も可
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  PROJECT_ID:  ${{ secrets.GCP_PROJECT_ID }}
   SERVICE_NAME: reel-auto
-  REGION: asia-northeast1     # 東京
+  REGION: asia-northeast1         # 東京
 
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: 'read'
-      id-token: 'write'       # ←必須 (auth アクション用)
 
     steps:
-      - uses: actions/checkout@v4
+    # ①  ソースをチェックアウト
+    - uses: actions/checkout@v4
 
-      # ① GCP 認証（サービスアカウント JSON を渡す）
-      - id: 'auth'
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+    # ②  認証 ‥‥★これが抜けていた★
+    - id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      # ② gcloud セットアップ
-      - uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ env.PROJECT_ID }}
+    # ③  gcloud セットアップ
+    - uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id:  ${{ env.PROJECT_ID }}
 
-      # ③ Cloud Run へデプロイ
-      - id: deploy
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE_NAME }}
-          region:  ${{ env.REGION }}
-          source:  .
-          timeout: 900
+    # ④  ビルド & Cloud Run へデプロイ
+    - id: deploy
+      uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        service:  ${{ env.SERVICE_NAME }}
+        region:   ${{ env.REGION }}
+        timeout:  "900s"                  # 15 分
+        source:   .
 
-      # ④ 成功したら URL を表示
-      - name: Show URL
-        run: echo "URL -> ${{ steps.deploy.outputs.url }}"
+    # ⑤  デプロイ URL をログに出力
+    - name: Show URL
+      run: echo "URL 👉  ${{ steps.deploy.outputs.url }}"
