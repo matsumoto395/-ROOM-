@@ -7,3 +7,5 @@ slack_sdk
 croniter
 streamlit
 ffmpeg-python
+
+Flask==3.0.2
