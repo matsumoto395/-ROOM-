@@ -1,0 +1,38 @@
+name: build-deploy
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:   # 手動実行も可
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: reel-auto
+  REGION: asia-northeast1
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Cloud SDK セットアップ
+    - uses: google-github-actions/setup-gcloud@v2
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        project_id: ${{ env.PROJECT_ID }}
+
+    # コンテナビルド & Cloud Run へデプロイ
+    - name: Deploy to Cloud Run
+      id: deploy
+      uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        service: ${{ env.SERVICE_NAME }}
+        region: ${{ env.REGION }}
+        source: .
+        timeout: 900s   # 15 min
+
+    # デプロイ URL を表示
+    - name: Show URL
+      run: echo "URL => ${{ steps.deploy.outputs.url }}"
